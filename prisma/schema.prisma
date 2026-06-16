@@ -1,0 +1,159 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("VOLUNTEER") // SQLite doesn't support enums natively, so we use String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  volunteerProfile VolunteerProfile?
+  applications     Application[]
+  certificates     Certificate[]
+  notifications    Notification[]
+  accounts         Account[]
+  sessions         Session[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VolunteerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone        String?
+  age          Int?
+  gender       String?
+  city         String?
+  state        String?
+  education    String?
+  occupation   String?
+  skills       String? 
+  interests    String? 
+  availability String?
+  linkedinUrl  String?
+  resumeUrl    String?
+  motivation   String? 
+  totalHours   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Opportunity {
+  id              String        @id @default(cuid())
+  title           String
+  description     String        
+  category        String
+  location        String
+  date            DateTime
+  time            String
+  requiredSkills  String?
+  volunteersNeeded Int
+  durationHours   Int
+  coordinatorName String?
+  status          String        @default("OPEN")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  applications    Application[]
+  events          Event[]
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunityId String
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  status        String            @default("PENDING")
+  adminNotes    String?           
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([userId, opportunityId])
+}
+
+model Event {
+  id            String   @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  date          DateTime
+  notes         String?  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  participations Participation[]
+}
+
+model Participation {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId      String 
+  hours       Int
+  status      String   @default("ATTENDED")
+  createdAt   DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
+
+model Certificate {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  hours         Int
+  issueDate     DateTime @default(now())
+  pdfUrl        String?
+  createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String   
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
